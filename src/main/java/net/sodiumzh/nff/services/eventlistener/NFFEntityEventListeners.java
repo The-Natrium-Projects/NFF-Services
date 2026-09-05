@@ -83,12 +83,12 @@ public class NFFEntityEventListeners
 					if (res.getTamedMob().isPresent()) // Directly exit if befriended, as this mob is no longer valid
 					{
 						event.setCanceled(true);
-						event.setCancellationResult(InteractionResult.sidedSuccess(isClientSide));
+						event.setCancellationResult(res.getResult());
 						return;
-					} else if (res.isHandled())
+					} else if (res.getResult().consumesAction())
 					{
 						event.setCanceled(true);
-						result.setValue(InteractionResult.sidedSuccess(isClientSide));
+						result.setValue(res.getResult());
 						shouldPostInteractEvent.setValue(true);
 					}
 

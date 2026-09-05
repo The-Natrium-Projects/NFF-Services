@@ -2,10 +2,12 @@ package net.sodiumzh.nff.services.entity.taming;
 
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.Level;
 import net.sodiumzh.nfu.entity.MobApplicableItemTable;
 import net.sodiumzh.nfu.entity.taming.ITamingProcess;
 import net.sodiumzh.nfu.entity.taming.TamingInteractionResult;
@@ -33,88 +35,87 @@ public abstract class TamingProcessItemGivingProgress extends TamingProcessItemG
 
 	@Override
 	public TamingInteractionResult handleInteract(Player player, Mob mob, InteractionHand hand) {
-		TamingInteractionResult result = TamingInteractionResult.unhandled(player.getLevel());
+		Level level = player.level();
+		if (level.isClientSide()) return TamingInteractionResult.of(level, InteractionResult.CONSUME, null);
+
+		TamingInteractionResult result = TamingInteractionResult.unhandled(player.level());
 		NFFTamableComponent tamable = NFFTamableComponent.getOptional(mob).orElse(null);
-		if (tamable == null) return TamingInteractionResult.unhandled(player.getLevel());
+		if (tamable == null) return TamingInteractionResult.unhandled(player.level());
+		if (!player.isShiftKeyDown()
+			&& (isItemAcceptableInternal(player.getMainHandItem(), player, tamable.getEntity())
+			|| player.getMainHandItem().is(Items.DEBUG_STICK))	// Item is acceptable.
+			&& hand.equals(InteractionHand.MAIN_HAND)	// Debug Stick is resolved as a progress+1.00 debug tool
+			&& !(mob.isPassenger() && this.shouldBlockOnRiding())	// Prevent player from sticking the mob with boat to tame
+			&& additionalConditions(player, mob)) {
+			// Now player is holding an acceptable item and using on the mob
 
-		if (!player.level.isClientSide)
-		{
-			if (!player.isShiftKeyDown()
-					&& (isItemAcceptableInternal(player.getMainHandItem(), player, tamable.getEntity())
-						|| player.getMainHandItem().is(Items.DEBUG_STICK))	// Item is acceptable.
-					&& hand.equals(InteractionHand.MAIN_HAND)	// Debug Stick is resolved as a progress+1.00 debug tool
-					&& !(mob.isPassenger() && this.shouldBlockOnRiding())	// Prevent player from sticking the mob with boat to tame
-					&& additionalConditions(player, mob)) {
-				// Now player is holding an acceptable item and using on the mob
+			// Fail if another online player is ongoing
+			if (this.isOtherPresentingPlayerOngoing(mob, player.getUUID()))
+			{
+				sendParticlesOnActionCooldown(mob);
+				NFUMiscStatics.printToScreen(NFUInfoStatics.createTranslatable(
+						"info.nffservices.other_player_ongoing", this.getOngoingPlayer(mob).map(Player::getName).orElseThrow()),
+					player);
+				result = TamingInteractionResult.of(level, InteractionResult.SUCCESS, null);
+			}
+			// Fail if the mob is angry
+			if (tamable.getAngerHandler().isAngryAt(player) && !shouldIgnoreAnger()) {
+				sendParticlesOnAngry(mob);
+				this.debugPrint(player, "Anger cooldown: " + Integer.toString(tamable.getAngerHandler().getRemainingForgivingTicks(player) / 20) + " s.");
+				result = TamingInteractionResult.of(level, InteractionResult.SUCCESS, null);
+			}
+			// Fail if in cooldown
+			else if (this.getCurrentCooldown(mob) != 0) {
+				this.debugPrint(player,"Action cooldown " + Integer.toString(this.getCurrentCooldown(mob) / 20) + " s.");
+				sendParticlesOnActionCooldown(mob);
+				result = TamingInteractionResult.of(level, InteractionResult.SUCCESS, null);
+			}
+			// Success, process the progress value
+			else {
+				ItemStack mainhand = player.getMainHandItem();
+				ItemStack givenCopy = mainhand.copy();
+				this.setProgressIfAbsent(mob, player.getUUID(), 0d);
+				double currentProgress = this.getProgressValue(mob, player.getUUID()).orElseThrow();
+				double oldProgress = currentProgress;
 
-				// Fail if another online player is ongoing
-				if (this.isOtherPresentingPlayerOngoing(mob, player.getUUID()))
-				{
-					sendParticlesOnActionCooldown(mob);
-					NFUMiscStatics.printToScreen(NFUInfoStatics.createTranslatable(
-							"info.nffservices.other_player_ongoing", this.getOngoingPlayer(mob).map(Player::getName).orElseThrow()),
-							player);
-					result.setHandled();
+				// Debug Stick is reserved, it will immediately give the mob 1.01 progress.
+				if (mainhand.is(Items.DEBUG_STICK)) {
+					currentProgress += 1.01;
+					this.setProgressValue(mob, player.getUUID(), currentProgress);
 				}
-				// Fail if the mob is angry
-				if (tamable.getAngerHandler().isAngryAt(player) && !shouldIgnoreAnger()) {
-					sendParticlesOnAngry(mob);
-					this.debugPrint(player, "Anger cooldown: " + Integer.toString(tamable.getAngerHandler().getRemainingForgivingTicks(player) / 20) + " s.");
-					result.setHandled();
-				}
-				// Fail if in cooldown
-				else if (this.getCurrentCooldown(mob) != 0) {
-					this.debugPrint(player,"Action cooldown " + Integer.toString(this.getCurrentCooldown(mob) / 20) + " s.");
-					sendParticlesOnActionCooldown(mob);
-					result.setHandled();
-				}
-				// Success, process the progress value
+				// A normal item is given now
 				else {
-					ItemStack mainhand = player.getMainHandItem();
-					ItemStack givenCopy = mainhand.copy();
-					this.setProgressIfAbsent(mob, player.getUUID(), 0d);
-					double currentProgress = this.getProgressValue(mob, player.getUUID()).orElseThrow();
-					double oldProgress = currentProgress;
-
-					// Debug Stick is reserved, it will immediately give the mob 1.01 progress.
-					if (mainhand.is(Items.DEBUG_STICK)) {
-						currentProgress += 1.01;
+					// Calculate the progress
+					currentProgress += getProgressGainInternal(mainhand, player, mob, oldProgress);
+					if (currentProgress <= 0)
+						currentProgress = 0;
+					// Handle item consume
+					if (!player.isCreative() && shouldItemConsumeInternal(player.getMainHandItem(), mob)) {
+						player.getMainHandItem().shrink(1);
+						NFUItemStatics.giveOrDrop(player, player.getMainHandItem().getCraftingRemainingItem());
+					}
+					NFUItemStatics.giveOrDrop(player, getReturnedItem(player, mob, givenCopy, oldProgress, currentProgress));
+					// Assign the progress
+					if (currentProgress > 0)
 						this.setProgressValue(mob, player.getUUID(), currentProgress);
-					}
-					// A normal item is given now
-					else {
-						// Calculate the progress
-						currentProgress += getProgressGainInternal(mainhand, player, mob, oldProgress);
-						if (currentProgress <= 0)
-							currentProgress = 0;
-						// Handle item consume
-						if (!player.isCreative() && shouldItemConsumeInternal(player.getMainHandItem(), mob)) {
-							player.getMainHandItem().shrink(1);
-							NFUItemStatics.giveOrDrop(player,
-								player.getMainHandItem().getItem().getContainerItem(player.getMainHandItem()));
-						}
-						NFUItemStatics.giveOrDrop(player, getReturnedItem(player, mob, givenCopy, oldProgress, currentProgress));
-						// Assign the progress
-						if (currentProgress > 0)
-							this.setProgressValue(mob, player.getUUID(), currentProgress);
-						else interrupt(player, mob, true);
-					}
-					this.debugPrint(player, "Progress Value: " + Double.toString(currentProgress));
-					// Progress value processing end, finalize
-					// Check and tame if reaches 1
-					if (currentProgress >= 1 - 1e-12d) {    // 1.0 actually, avoiding potential float errors
-						// Reaches 1, enter the final actions. Usually the mobs will be tamed after the final actions.
-						result.setTamedMob(finalActions(player, mob));
-					} else {
-						// Not satisfied, put data
-						this.setOngoingPlayer(mob, player.getUUID());
-                        this.getTamable(mob).getTimerComponent().addTimer(TIMER_KEY_ITEM_COOLDOWN, this.getItemGivingCooldownTicks(), true);
-						this.afterItemGiven(player, mob, givenCopy);
-						this.onItemGiven(player, mob, givenCopy, oldProgress, currentProgress);
-						sendParticlesOnItemReceived(mob);
-						sendProgressHeart(mob, oldProgress, currentProgress, deltaProgressPerHeart());
-						result.setHandled();
-					}
+					else interrupt(player, mob, true);
+				}
+				this.debugPrint(player, "Progress Value: " + Double.toString(currentProgress));
+				// Progress value processing end, finalize
+				// Check and tame if reaches 1
+				if (currentProgress >= 1 - 1e-12d) {    // 1.0 actually, avoiding potential float errors
+					// Reaches 1, enter the final actions. Usually the mobs will be tamed after the final actions.
+					result = TamingInteractionResult.of(level, InteractionResult.SUCCESS, null);
+					result.setTamedMob(finalActions(player, mob));
+				} else {
+					// Not satisfied, put data
+					this.setOngoingPlayer(mob, player.getUUID());
+					this.getTamable(mob).getTimerComponent().addTimer(TIMER_KEY_ITEM_COOLDOWN, this.getItemGivingCooldownTicks(), true);
+					this.afterItemGiven(player, mob, givenCopy);
+					this.onItemGiven(player, mob, givenCopy, oldProgress, currentProgress);
+					sendParticlesOnItemReceived(mob);
+					sendProgressHeart(mob, oldProgress, currentProgress, deltaProgressPerHeart());
+					result = TamingInteractionResult.of(level, InteractionResult.SUCCESS, null);
 				}
 			}
 		}
