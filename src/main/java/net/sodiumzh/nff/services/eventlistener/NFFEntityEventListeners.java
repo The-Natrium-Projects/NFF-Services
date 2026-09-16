@@ -30,7 +30,6 @@ import net.sodiumzh.nff.services.entity.taming.INFFTamed.DeathRespawnerGeneratio
 import net.sodiumzh.nff.services.event.entity.NFFTamedDeathEvent;
 import net.sodiumzh.nff.services.event.entity.NFFTamedDropRespawnerOnDyingEvent;
 import net.sodiumzh.nff.services.event.entity.ai.NFFTamedChangeAiStateEvent;
-import net.sodiumzh.nff.services.inventory.NFFTamedMobInventory;
 import net.sodiumzh.nff.services.item.NFFMobRespawnerInstance;
 import net.sodiumzh.nff.services.item.NFFMobRespawnerItem;
 import net.sodiumzh.nff.services.registry.NFFCapRegistry;
@@ -453,9 +452,7 @@ public class NFFEntityEventListeners
 		        	// Generally the code below shouldn't be invoked, so print an error to log
 		        	if (NFFTamedStatics.isLivingAlliedToBM(bm, bm.asMob().getTarget()))
 		        	{
-		        		LogUtils.getLogger().error("NFF Services: NFF tamed mob ["
-		        				+ bm.asMob().getName().getString() + "] attempting to attack ally ["
-		        				+ bm.asMob().getTarget().getName().getString() + "]. Target reset.");
+                        LogUtils.getLogger().error("NFF Services: NFF tamed mob [{}] attempting to attack ally [{}]. Target reset.", bm.asMob().getName().getString(), bm.asMob().getTarget().getName().getString());
 		        		bm.asMob().setTarget(null);
 		        		if (bm.asMob().getTarget() != null)
 		        			// Maybe sometimes setTarget can be cancelled
