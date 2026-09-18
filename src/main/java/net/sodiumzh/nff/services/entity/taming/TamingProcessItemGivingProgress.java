@@ -92,7 +92,7 @@ public abstract class TamingProcessItemGivingProgress extends TamingProcessItemG
 					// Handle item consume
 					if (!player.isCreative() && shouldItemConsumeInternal(player.getMainHandItem(), mob)) {
 						player.getMainHandItem().shrink(1);
-						NFUItemStatics.giveOrDrop(player, player.getMainHandItem().getCraftingRemainingItem());
+						NFUItemStatics.giveOrDrop(player, player.getMainHandItem().getContainerItem());
 					}
 					NFUItemStatics.giveOrDrop(player, getReturnedItem(player, mob, givenCopy, oldProgress, currentProgress));
 					// Assign the progress
