@@ -340,10 +340,18 @@ public interface INFFTamed extends ContainerListener, OwnableEntity {
 
 	/**
 	 * Check if another mob should be accounted as ally of self, and should not attack each other.
+     * @deprecated This method name is confusing with vanilla isAlliedTo(). Use {@code isTamedAlliedTo} instead.
 	 */
-	public default boolean isAllyTo(LivingEntity other) {
-		return NFFTamedStatics.isLivingAlliedToOwnableUnsafe(this, other);
+	@Deprecated(forRemoval = true)
+    public default boolean isAllyTo(LivingEntity other) {
+		return isTamedAlliedTo(other);
 	}
+
+    public default boolean isTamedAlliedTo(LivingEntity other) {
+        return NFFTamedStatics.isLivingAlliedToOwnableUnsafe(this, other);
+    }
+
+    public
 
 	/**
 	 * Check if another mob should be accounted as ally of the tamed mob, and should not attack each other.

@@ -133,68 +133,67 @@ public class NFFTamedStatics
 			stream = stream.filter(e -> e.distanceToSqr(player) <= radius * radius);
 		return stream.map(e -> (Mob)e).collect(Collectors.toList());
 	}
-	
+
+    /**
+     * Get self, direct and indirect owners' UUID. The list's order is {self, owner, owner's owner, ...}
+     */
+    private static List<UUID> getSelfAndOwnersUUID(LivingEntity e) {
+        if (e == null) return List.of();
+        List<UUID> res = new ArrayList<>();
+        LivingEntity current = e;
+        res.add(e.getUUID());
+        while (e != null) {
+            UUID emptyUUID = new UUID(0L, 0L);
+            // For vanilla ownables (directly implemented in the mob class)
+            if (e instanceof OwnableEntity ownable) {
+                if (ownable.getOwnerUUID() != null && ownable.getOwnerUUID().equals(emptyUUID)) {
+                    res.add(ownable.getOwnerUUID());
+                    e = ownable.getOwner();
+                }
+            }
+            // For an NFF implementation that's not directly implemented in the mob class
+            else if (INFFTamed.get(e).isPresent()) {
+                INFFTamed tamed = INFFTamed.get(e).orElseThrow();
+                if (tamed.getOwnerUUID() != null && !tamed.getOwnerUUID().equals(emptyUUID)) {
+                    res.add(tamed.getOwnerUUID());
+                    e = tamed.getOwnerInDimension();
+                }
+            }
+            else e = null;
+        }
+        return res;
+    }
+
 	/**
 	 * Check if a living entity ({@code test}) should be considered as ally by an {@code OwnableEntity} ({@code entity}) under BMF rule.
-	 * <p>This method is private because it doesn't involve BM, so directly calling this may cause unexpected
-	 * behavior changes on vanilla mobs. Call {@code isLivingAlliedToBM} and {@code isBMAlliedToOwnable} instead.
+	 * <p>This method is private because it doesn't involve NFF mobs, so directly calling this may cause unexpected
+	 * behavior changes on vanilla mobs. Call {@link INFFTamed#isTamedAlliedTo(LivingEntity)} instead.
 	 * <p>On server only. On client always {@code false}.
 	 */
-	static boolean isLivingAlliedToOwnableUnsafe(OwnableEntity ownable, LivingEntity target)
+	static boolean isLivingAlliedToOwnableUnsafe(OwnableEntity ownable, LivingEntity target, boolean allowsPVP)
 	{
 		if (ownable == null || target == null) return false;
-		Level level = target.level();
-		if (level.isClientSide) return false;
-		// Get the actual mob. In the future INFFTamed may become a capability and may not refer to the mob itself
-		// Null means impossible to get the mob reference from the argument, and only owners will be compared
+        Level level = target.level();
 
-		LivingEntity ownableMob = ownable instanceof INFFTamed t ? t.asMob() : (ownable instanceof LivingEntity l ? l : null);
-		if (target.equals(ownableMob)) return true;
-		// Recursively search self and owners
-		Set<UUID> selfAndOwners = new HashSet<>();
-		LivingEntity ptr = ownableMob != null ? ownableMob : (ownable.getOwner() != null ? ownable.getOwner() : null);
-		if (ptr == null && ownable.getOwnerUUID() != null) selfAndOwners.add(ownable.getOwnerUUID());
-		while (ptr != null) {
-			selfAndOwners.add(ptr.getUUID());
-			LivingEntity ptrCopy = ptr;
-			UUID uuid = INFFTamed.get(ptrCopy).map(INFFTamed::getOwnerUUID).orElseGet(() ->
-				ptrCopy instanceof OwnableEntity o ? o.getOwnerUUID() : null);
-			LivingEntity owner = INFFTamed.get(ptrCopy).map(t -> (LivingEntity) t.getOwner()).orElseGet(() ->
-				ptrCopy instanceof OwnableEntity o ? o.getOwner() : null);
-			if (uuid != null) {
-				if (selfAndOwners.contains(uuid)) break;	// Preventing cyclic reference in getOwner()
-				selfAndOwners.add(uuid);
-			}
-			ptr = owner;	// When the owner exists but not in level, it's still possible to record this owner, but not above
-		}
-		// Recursively search target and owners
-		Set<UUID> targetAndOwners = new HashSet<>();
-		LivingEntity ptr1 = target;
-		while (ptr1 != null) {
-			targetAndOwners.add(ptr1.getUUID());
-			LivingEntity ptrCopy = ptr1;
-			UUID uuid = INFFTamed.get(ptrCopy).map(INFFTamed::getOwnerUUID).orElseGet(() ->
-				ptrCopy instanceof OwnableEntity o ? o.getOwnerUUID() : null);
-			LivingEntity owner = INFFTamed.get(ptrCopy).map(t -> (LivingEntity) t.getOwner()).orElseGet(() ->
-				ptrCopy instanceof OwnableEntity o ? o.getOwner() : null);
-			if (uuid != null) {
-				if (targetAndOwners.contains(uuid)) break;	// Preventing cyclic reference in getOwner()
-				targetAndOwners.add(uuid);
-			}
-			ptr1 = owner;	// When the owner exists but not in level, it's still possible to record this owner, but not above
-		}
-		// Compare UUID to cover cases when owner is not present
-		// Case when the target is owned by self or self's owner
-		boolean selfIsPlayerOwned = false;
-		for (UUID uuid: selfAndOwners) {
-			if (targetAndOwners.contains(uuid)) return true;
-			if (level.getPlayerByUUID(uuid) != null) selfIsPlayerOwned = true;
-		}
-		// Case when the target is owned by someone and pvp isn't allowed
-		if (level.getServer() != null && !level.getServer().isPvpAllowed() && selfIsPlayerOwned) {
-			if (targetAndOwners.stream().anyMatch(uuid -> level.getPlayerByUUID(uuid) != null)) return true;
-		}
-		return false;
+		if (level.isClientSide) return false;
+
+        LivingEntity ownableEntity = ownable instanceof LivingEntity le ? le : (ownable instanceof INFFTamed tamed ? tamed.asMob() : null);
+        if (ownableEntity == null) return false;
+        List<UUID> selfAndOwners = getSelfAndOwnersUUID(ownableEntity);
+        List<UUID> targetAndOwners = getSelfAndOwnersUUID(target);
+        if (selfAndOwners.isEmpty() || targetAndOwners.isEmpty()) return false;
+        if (Stream.concat(selfAndOwners.stream(), targetAndOwners.stream()).collect(Collectors.toSet()).size() < selfAndOwners.size() + targetAndOwners.size())
+            return true;    // Case when the ownable and target's ownership chains involve the same entity
+        // If not allowing PVP, don't attack any player or player-owned mob
+        if (!allowsPVP) {
+            if (level.getServer() != null
+                && level.getServer().getPlayerList().getPlayer(targetAndOwners.get(targetAndOwners.size() - 1)) != null)
+            {
+                return true;
+            }
+        }
+        return false;
+
 	}
 
 	/**
