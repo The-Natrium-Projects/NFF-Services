@@ -338,26 +338,18 @@ public interface INFFTamed extends ContainerListener, OwnableEntity {
 		return dx * dx + dz * dz > getAnchoredStrollRadius() * getAnchoredStrollRadius();		
 	}
 
-	/**
-	 * Check if another mob should be accounted as ally of self, and should not attack each other.
-     * @deprecated This method name is confusing with vanilla isAlliedTo(). Use {@code isTamedAlliedTo} instead.
-	 */
-	@Deprecated(forRemoval = true)
-    public default boolean isAllyTo(LivingEntity other) {
-		return isTamedAlliedTo(other);
-	}
-
+    /**
+     * Check if another mob should be accounted as ally of self, and should not attack each other.
+     */
     public default boolean isTamedAlliedTo(LivingEntity other) {
-        return NFFTamedStatics.isLivingAlliedToOwnableUnsafe(this, other);
+        return NFFTamedStatics.isLivingAlliesDefault(this.asMob(), other, false);
     }
-
-    public
 
 	/**
 	 * Check if another mob should be accounted as ally of the tamed mob, and should not attack each other.
 	 */
 	public static boolean isAlly(INFFTamed tamed, LivingEntity other) {
-		return tamed.isAllyTo(other);
+		return tamed.isTamedAlliedTo(other);
 	}
 
 
@@ -542,38 +534,22 @@ public interface INFFTamed extends ContainerListener, OwnableEntity {
 	
 	/* Misc */
 
-	/**
-	 * Get this as Mob.
-	 */
-	@DontOverride
 	public default Mob asMob()
 	{
 		return (Mob)this;
 	}
-	
-	/**
-	 * Get this as INFFTamed.
-	 */
-	@DontOverride
-	public default INFFTamed getBM()
+
+	public default INFFTamed getTamed()
 	{
 		return this;
-	}
-
-	/**
-	 * Specify the mod ID this mob belongs to.
-	 */
-	@Deprecated
-	public default String getModId()
-	{
-		return ForgeRegistries.ENTITY_TYPES.getKey(asMob().getType()).getNamespace();
 	}
 
 	/**
 	 * Get a utility accessor for tamed data.
 	 * <p>If your sub-interface have its own data, override this to your data accessor utility extending {@link NFFTamedDataAccessor}.
 	 */
-	public default NFFTamedDataAccessor getDataAccessor() {
+    @ApiStatus.NonExtendable
+    public default NFFTamedDataAccessor getDataAccessor() {
 		return NFFTamedDataAccessor.get(this);
 	}
 
@@ -581,7 +557,7 @@ public interface INFFTamed extends ContainerListener, OwnableEntity {
 	 * Get the UUID identifier of this mob. (Not the entity UUID. This is for identifying a mob even if it respawned with a new UUID).
 	 * Returns empty uuid (0, 0) if the data cap is lost (may occasionally happen).
 	 */
-	@DontOverride
+	@ApiStatus.NonExtendable
 	@Nonnull
 	public default UUID getIdentifier()
 	{
@@ -657,11 +633,7 @@ public interface INFFTamed extends ContainerListener, OwnableEntity {
      */
     public default boolean enableSunSensitivity() {return false;}
 
-    /**
-     * Check if the mob is immune to sun from rules.
-     * Implemented in {@link NFFEntityEventListeners#onMobSunBurnTick} via {@link net.sodiumzh.nfu.mixin.event.entity.MobSunBurnTickEvent}
-     */
-    @DontOverride
+
     @ApiStatus.NonExtendable
     public default boolean isSunImmune()
     {
@@ -673,11 +645,9 @@ public interface INFFTamed extends ContainerListener, OwnableEntity {
      * Setup rules for sun immunity. Use {@code getSunImmunity()} to access rules.
      * Called in EntityJoinWorldEvent only
      */
-    @DontCallManually
     @ApiStatus.OverrideOnly
     public default void setupSunImmunityRules() {};
 
-    @DontOverride
     @ApiStatus.NonExtendable
     public default MutablePredicate<INFFTamed> getSunImmunity()
     {

@@ -60,7 +60,7 @@ public class NFFNearestAttackableTargetGoal<T extends LivingEntity> extends NFFT
          return false;
       } else {
          this.findTarget();
-		if (NFFTamedStatics.isLivingAlliedToBM(mob, this.target) || !mob.wantsToAttack(this.target))
+		if (mob.isTamedAlliedTo(this.target) || !mob.wantsToAttack(this.target))
 			return false;
          return this.target != null;
       }
@@ -86,7 +86,7 @@ public class NFFNearestAttackableTargetGoal<T extends LivingEntity> extends NFFT
               e instanceof Mob m
                   && this.targetType.isAssignableFrom(m.getClass())
                   && mob.asMob().distanceToSqr(m) <= followDist * followDist
-                  && !NFFTamedStatics.isLivingAlliedToBM(mob, m)
+                  && !mob.isTamedAlliedTo(m)
                   && mob.asMob().hasLineOfSight(m)
                   && this.targetConditions.test(mob.asMob(), m))
           .stream()

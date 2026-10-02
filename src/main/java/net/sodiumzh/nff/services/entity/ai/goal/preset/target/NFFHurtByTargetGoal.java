@@ -45,7 +45,7 @@ public class NFFHurtByTargetGoal extends NFFTargetGoal {
 		{
 			if (mob.getOwner() == lastHurt) 
 				return false;
-			if (NFFTamedStatics.isLivingAlliedToBM(mob, lastHurt) || !mob.wantsToAttack(lastHurt))
+			if (mob.isTamedAlliedTo(lastHurt) || !mob.wantsToAttack(lastHurt))
 				return false;
 			else 
 			{

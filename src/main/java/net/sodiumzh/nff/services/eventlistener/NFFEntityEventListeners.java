@@ -139,17 +139,17 @@ public class NFFEntityEventListeners
 		if (target != null && event.getEntity() instanceof Mob mob)
 		{
 			if (INFFTamed.get(mob).isPresent()) {
-				if (INFFTamed.get(mob).filter(i -> i.isAllyTo(target)).isPresent())
+				if (INFFTamed.get(mob).filter(i -> i.isTamedAlliedTo(target)).isPresent())
 					event.setNewTarget(INFFTamed.get(mob).orElseThrow().getPreviousTarget());
 				else INFFTamed.get(mob).orElseThrow().setPreviousTarget(target);
 			}
-			else if (INFFTamed.get(target).filter(i -> i.isAllyTo(mob)).isPresent()) {
+			else if (INFFTamed.get(target).filter(i -> i.isTamedAlliedTo(mob)).isPresent()) {
 				event.setCanceled(true);
 		}
 	        // Handle befriended mobs end //
 	        // Handle TamableAnimal //	
 	        if (mob instanceof OwnableEntity oe
-				&& INFFTamed.get(target).filter(i -> i.isAllyTo(NFFTamedStatics.livingFromOwnableInterface(oe).orElse(null))).isPresent())
+				&& INFFTamed.get(target).filter(i -> i.isTamedAlliedTo(NFFTamedStatics.livingFromOwnableInterface(oe).orElse(null))).isPresent())
 	        {
 				event.setCanceled(true);
 	        }
@@ -397,7 +397,7 @@ public class NFFEntityEventListeners
 					}
 					// Sometimes it may happen that the mobs still attack allies, reset here
 		        	// Generally the code below shouldn't be invoked, so print an error to log
-		        	if (NFFTamedStatics.isLivingAlliedToBM(bm, bm.asMob().getTarget()))
+		        	if (bm.isTamedAlliedTo(bm.asMob().getTarget()))
 		        	{
                         LogUtils.getLogger().error("NFF Services: NFF tamed mob [{}] attempting to attack ally [{}]. Target reset.", bm.asMob().getName().getString(), bm.asMob().getTarget().getName().getString());
 		        		bm.asMob().setTarget(null);

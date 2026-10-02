@@ -36,7 +36,7 @@ public class NFFOwnerHurtByTargetGoal extends NFFTargetGoal {
 		else 
 		{
 			this.ownerLastHurtBy = owner.getLastHurtByMob();
-			if (NFFTamedStatics.isLivingAlliedToBM(mob, this.ownerLastHurtBy) || !mob.wantsToAttack(this.ownerLastHurtBy))
+			if (mob.isTamedAlliedTo(this.ownerLastHurtBy) || !mob.wantsToAttack(this.ownerLastHurtBy))
 				return false;
 			int i = owner.getLastHurtByMobTimestamp();
 			if (i == this.timestamp)

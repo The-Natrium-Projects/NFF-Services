@@ -1,10 +1,7 @@
 package net.sodiumzh.nff.services.entity.taming;
 
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.Container;
-import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.monster.Creeper;
 import net.minecraft.world.entity.monster.Ghast;
@@ -40,7 +37,7 @@ public class NFFTamedStatics
 			return false;
 		else if (target instanceof Ghast && !mob.canAttackGhast())
 			return false;
-		else return !isLivingAlliedToBM(mob, target);
+		else return !mob.isTamedAlliedTo(target);
 	}
 
 	/**
@@ -166,22 +163,19 @@ public class NFFTamedStatics
 
 	/**
 	 * Check if a living entity ({@code test}) should be considered as ally by an {@code OwnableEntity} ({@code entity}) under BMF rule.
-	 * <p>This method is private because it doesn't involve NFF mobs, so directly calling this may cause unexpected
-	 * behavior changes on vanilla mobs. Call {@link INFFTamed#isTamedAlliedTo(LivingEntity)} instead.
+     * <p>This method is exchangeable i.e. (e1, e2) returns the same as (e2, e1).
 	 * <p>On server only. On client always {@code false}.
 	 */
-	static boolean isLivingAlliedToOwnableUnsafe(OwnableEntity ownable, LivingEntity target, boolean allowsPVP)
+	public static boolean isLivingAlliesDefault(LivingEntity e1, LivingEntity e2, boolean allowsPVP)
 	{
-		if (ownable == null || target == null) return false;
-        Level level = target.level();
+		if (e1 == null || e2 == null) return false;
+        Level level = e2.level();
+        if (level.isClientSide) return false;
+        if (e1.level() != e2.level()) return false; // In different dimension, no need to check ally
 
-		if (level.isClientSide) return false;
-
-        // Get the ownership chains of self and target
-        LivingEntity ownableEntity = ownable instanceof LivingEntity le ? le : (ownable instanceof INFFTamed tamed ? tamed.asMob() : null);
-        if (ownableEntity == null) return false;
-        List<UUID> selfAndOwners = getSelfAndOwnersUUID(ownableEntity);
-        List<UUID> targetAndOwners = getSelfAndOwnersUUID(target);
+        if (e1 == null) return false;
+        List<UUID> selfAndOwners = getSelfAndOwnersUUID(e1);
+        List<UUID> targetAndOwners = getSelfAndOwnersUUID(e2);
         if (selfAndOwners.isEmpty() || targetAndOwners.isEmpty()) return false;
         // Case when the ownable and target's ownership chains involve the same entity
         if (Stream.concat(selfAndOwners.stream(), targetAndOwners.stream()).collect(Collectors.toSet()).size() < selfAndOwners.size() + targetAndOwners.size())
@@ -196,7 +190,6 @@ public class NFFTamedStatics
             }
         }
         return false;
-
 	}
 
 	/**
@@ -208,21 +201,10 @@ public class NFFTamedStatics
 	public static boolean isBMAlliedToOwnable(OwnableEntity entity, INFFTamed test)
 	{
 		if (entity instanceof INFFTamed i)
-			return test.isAllyTo(i.asMob());
+			return test.isTamedAlliedTo(i.asMob());
 		else if (entity instanceof LivingEntity le)
-			return test.isAllyTo(le);
+			return test.isTamedAlliedTo(le);
 		else return false;
-	}
-
-	/**
-	 * Check if a {@code LivingEntity} is considered as ally by a BM.
-	 * <p>On server only. On client always {@code false}.
-	 * @deprecated Use {@link INFFTamed#isAllyTo} instead.
-	 */
-	@Deprecated
-	public static boolean isLivingAlliedToBM(INFFTamed bm, LivingEntity test)
-	{
-		return bm.isAllyTo(test);
 	}
 
 	/**
@@ -231,7 +213,6 @@ public class NFFTamedStatics
 	 * <p>Generally it shouldn't return {@link Optional#empty}, but as we cannot guarantee
 	 * other mods don't attach OwnableEntity to non-living classes, we still use optional here
 	 */
-	@Nullable
 	public static Optional<LivingEntity> livingFromOwnableInterface(OwnableEntity ownable) {
 		if (ownable instanceof LivingEntity l) return Optional.of(l);
 		else if (ownable instanceof INFFTamed t)
