@@ -177,17 +177,20 @@ public class NFFTamedStatics
 
 		if (level.isClientSide) return false;
 
+        // Get the ownership chains of self and target
         LivingEntity ownableEntity = ownable instanceof LivingEntity le ? le : (ownable instanceof INFFTamed tamed ? tamed.asMob() : null);
         if (ownableEntity == null) return false;
         List<UUID> selfAndOwners = getSelfAndOwnersUUID(ownableEntity);
         List<UUID> targetAndOwners = getSelfAndOwnersUUID(target);
         if (selfAndOwners.isEmpty() || targetAndOwners.isEmpty()) return false;
+        // Case when the ownable and target's ownership chains involve the same entity
         if (Stream.concat(selfAndOwners.stream(), targetAndOwners.stream()).collect(Collectors.toSet()).size() < selfAndOwners.size() + targetAndOwners.size())
-            return true;    // Case when the ownable and target's ownership chains involve the same entity
-        // If not allowing PVP, don't attack any player or player-owned mob
+            return true;
+        // If not allowing PVP, if self is player-owned, don't attack any player or player-owned mob
         if (!allowsPVP) {
             if (level.getServer() != null
-                && level.getServer().getPlayerList().getPlayer(targetAndOwners.get(targetAndOwners.size() - 1)) != null)
+                && NFUEntityStatics.getAllKnownPlayers().contains(selfAndOwners.get(selfAndOwners.size() - 1))
+                && NFUEntityStatics.getAllKnownPlayers().contains(targetAndOwners.get(targetAndOwners.size() - 1)))
             {
                 return true;
             }
