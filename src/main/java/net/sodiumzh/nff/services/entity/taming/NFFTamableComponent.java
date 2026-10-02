@@ -251,7 +251,7 @@ public class NFFTamableComponent extends EntityComponentBase<Mob> {
      */
     public static Optional<NFFTamableComponent> getOptional(Entity e) {
         if (e instanceof Mob mob)
-            return EntityComponentAPI.getComponentByPath(mob, "/nff/tamable", NFFEntityComponents.TAMABLE.get());
+            return EntityComponentAPI.getComponentByPath(mob, NFFEntityComponents.PATH_TAMABLE, NFFEntityComponents.TAMABLE.get());
         else return Optional.empty();
     }
 
