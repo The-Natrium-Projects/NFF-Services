@@ -9,6 +9,7 @@ import net.sodiumzh.nfu.entity.MobRespawnInfo;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.text.html.Option;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -33,6 +34,8 @@ public class NFFMobRespawnInfo extends MobRespawnInfo {
 
     @Override
     protected void afterRespawn(Mob mob, Level level, @Nullable Player player) {
+        mob.clearFire();
+        mob.removeAllEffects();
         INFFTamed.get(mob).ifPresent(b -> {
             b.updateAnchor();
         });
@@ -41,4 +44,5 @@ public class NFFMobRespawnInfo extends MobRespawnInfo {
     public Optional<UUID> getOwnerUUID() {
         return Optional.ofNullable(this.ownerUUID);
     }
+
 }
