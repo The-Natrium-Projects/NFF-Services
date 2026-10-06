@@ -139,14 +139,15 @@ public class NFFTamedStatics
         List<UUID> res = new ArrayList<>();
         LivingEntity current = e;
         res.add(e.getUUID());
+        UUID emptyUUID = new UUID(0L, 0L);
         while (e != null) {
-            UUID emptyUUID = new UUID(0L, 0L);
             // For vanilla ownables (directly implemented in the mob class)
             if (e instanceof OwnableEntity ownable) {
-                if (ownable.getOwnerUUID() != null && ownable.getOwnerUUID().equals(emptyUUID)) {
+                if (ownable.getOwnerUUID() != null && !ownable.getOwnerUUID().equals(emptyUUID)) {
                     res.add(ownable.getOwnerUUID());
                     e = ownable.getOwner();
                 }
+                else e = null;
             }
             // For an NFF implementation that's not directly implemented in the mob class
             else if (INFFTamed.get(e).isPresent()) {
@@ -155,6 +156,7 @@ public class NFFTamedStatics
                     res.add(tamed.getOwnerUUID());
                     e = tamed.getOwnerInDimension();
                 }
+                else e = null;
             }
             else e = null;
         }

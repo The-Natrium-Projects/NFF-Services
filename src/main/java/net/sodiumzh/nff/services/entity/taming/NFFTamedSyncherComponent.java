@@ -32,13 +32,13 @@ public class NFFTamedSyncherComponent extends EntitySyncherComponent<Mob> {
 
     public NFFTamedSyncherComponent(Mob entity) {
         super(entity);
-        this.createSynchedData(IDENTIFIER_SYNCHED_KEY, NFUDataSerializers.UUID, EMPTY_UUID, true);
-        this.createSynchedData(OWNER_UUID_SYNCHED_KEY, NFUDataSerializers.UUID, EMPTY_UUID, true);
-        this.createSynchedData(OWNER_NAME_SYNCHED_KEY, NFUDataSerializers.STRING, "", true);
-        this.createSynchedData(ENCOUNTERED_DATE_SYNCHED_KEY, NFUDataSerializers.INT_ARRAY, new int[] {2023, 1, 1}, true);
-        this.createSynchedData(AI_STATE_SYNCHED_KEY, NFUDataSerializers.STRING, NFFTamedMobAIState.WAIT.getId().toString(), true);
+        this.createSynchedData(IDENTIFIER_SYNCHED_KEY, NFUDataSerializers.UUID.get(), EMPTY_UUID, true);
+        this.createSynchedData(OWNER_UUID_SYNCHED_KEY, NFUDataSerializers.UUID.get(), EMPTY_UUID, true);
+        this.createSynchedData(OWNER_NAME_SYNCHED_KEY, NFUDataSerializers.STRING.get(), "", true);
+        this.createSynchedData(ENCOUNTERED_DATE_SYNCHED_KEY, NFUDataSerializers.INT_ARRAY.get(), new int[] {2023, 1, 1}, true);
+        this.createSynchedData(AI_STATE_SYNCHED_KEY, NFUDataSerializers.STRING.get(), NFFTamedMobAIState.WAIT.getId().toString(), true);
         this.createSynchedData(ADDITIONAL_INVENTORY_KEY, NFFDataSerializers.TAMED_MOB_INVENTORY.get(), NFFTamedMobInventory.createEmpty(null), true);
-        this.createSynchedGetter(ATTACK_TARGET_SYNCHED_KEY, NFUDataSerializers.INT, -1,
+        this.createSynchedGetter(ATTACK_TARGET_SYNCHED_KEY, NFUDataSerializers.INT.get(), -1,
             mob -> Optional.ofNullable(mob.getTarget()).map(LivingEntity::getId).orElse(-1));	// -1 means no target
         MinecraftForge.EVENT_BUS.post(new NFFTamedSyncherConstructEvent(entity, this));
     }

@@ -56,13 +56,13 @@ public class NFFTamedDataComponent extends EntityDataComponent<Mob> {
     @SuppressWarnings("unchecked")
     public void recordEntityType()
     {
-        this.putPermanentVariable("initialType", ForgeRegistries.ENTITY_TYPES.getKey(this.getEntity().getType()), NFUDataSerializers.RESOURCE_LOCATION);
+        this.putPermanentVariable("initialType", ForgeRegistries.ENTITY_TYPES.getKey(this.getEntity().getType()), NFUDataSerializers.RESOURCE_LOCATION.get());
     }
 
     @SuppressWarnings("unchecked")
     private void setInitialEntityType(@Nonnull EntityType<?> entityType)
     {
-        this.putPermanentVariable("initialType", ForgeRegistries.ENTITY_TYPES.getKey(entityType), NFUDataSerializers.RESOURCE_LOCATION);
+        this.putPermanentVariable("initialType", ForgeRegistries.ENTITY_TYPES.getKey(entityType), NFUDataSerializers.RESOURCE_LOCATION.get());
     }
 
     @SuppressWarnings("unchecked")
@@ -71,11 +71,11 @@ public class NFFTamedDataComponent extends EntityDataComponent<Mob> {
     }
 
     public Vec3 getRandomStrollAnchor() {
-        return this.getOrPutPermanent("randomStrollAnchor", Vec3.class, NFUDataSerializers.VEC3, () -> this.getEntity().position()).orElseThrow();
+        return this.getOrPutPermanent("randomStrollAnchor", Vec3.class, NFUDataSerializers.VEC3.get(), () -> this.getEntity().position()).orElseThrow();
     }
 
     public void setRandomStrollAnchor(Vec3 anchor) {
-        this.putPermanentVariable("randomStrollAnchor", anchor, NFUDataSerializers.VEC3);
+        this.putPermanentVariable("randomStrollAnchor", anchor, NFUDataSerializers.VEC3.get());
     }
 
     @ApiStatus.Internal

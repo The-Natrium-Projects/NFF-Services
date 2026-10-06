@@ -71,9 +71,9 @@ public class DataPort33 {
                     accessor.setAIState(temp.getAIState());
                     msgPrinter.accept("aiState", accessor.getAIState().toString());
                     // Port other values
-                    data.putPermanentVariable("initialType", ForgeRegistries.ENTITY_TYPES.getKey(temp.getInitialEntityType()), NFUDataSerializers.RESOURCE_LOCATION);
+                    data.putPermanentVariable("initialType", ForgeRegistries.ENTITY_TYPES.getKey(temp.getInitialEntityType()), NFUDataSerializers.RESOURCE_LOCATION.get());
                     msgPrinter.accept("initialType", accessor.getInitialEntityType().getDescriptionId());
-                    data.putPermanentVariable("randomStrollAnchor", temp.getAnchor(), NFUDataSerializers.VEC3);
+                    data.putPermanentVariable("randomStrollAnchor", temp.getAnchor(), NFUDataSerializers.VEC3.get());
                     msgPrinter.accept("randomStrollAnchor", accessor.getAnchor().toString());
                     // Port inventory
                     ListTag inventoryNBT = Optional.ofNullable(temp.getAdditionalInventory()).map(NFFTamedMobInventory::toTag)

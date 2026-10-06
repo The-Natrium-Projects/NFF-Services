@@ -349,12 +349,12 @@ public interface CNFFTamedCommonData extends INBTSerializable<CompoundTag>, CEnt
 			this.anchor = mob.asMob().position();
 			this.nbt = new CompoundTag();
 			this.inventory = this.getBM().createAdditionalInventory();
-			this.createSynchedData(IDENTIFIER_SYNCHED_KEY, NFUDataSerializers.UUID, EMPTY_UUID);
-			this.createSynchedData(OWNER_UUID_SYNCHED_KEY, NFUDataSerializers.UUID, EMPTY_UUID);
-			this.createSynchedData(OWNER_NAME_SYNCHED_KEY, NFUDataSerializers.STRING, "");
-			this.createSynchedData(ENCOUNTERED_DATE_SYNCHED_KEY, NFUDataSerializers.INT_ARRAY, new int[] {2023, 1, 1});
-			this.createSynchedData(AI_STATE_SYNCHED_KEY, NFUDataSerializers.STRING, NFFTamedMobAIState.WAIT.getId().toString());
-			this.createSynchedGetter(ATTACK_TARGET_SYNCHED_KEY, NFUDataSerializers.INT, -1,
+			this.createSynchedData(IDENTIFIER_SYNCHED_KEY, NFUDataSerializers.UUID.get(), EMPTY_UUID);
+			this.createSynchedData(OWNER_UUID_SYNCHED_KEY, NFUDataSerializers.UUID.get(), EMPTY_UUID);
+			this.createSynchedData(OWNER_NAME_SYNCHED_KEY, NFUDataSerializers.STRING.get(), "");
+			this.createSynchedData(ENCOUNTERED_DATE_SYNCHED_KEY, NFUDataSerializers.INT_ARRAY.get(), new int[] {2023, 1, 1});
+			this.createSynchedData(AI_STATE_SYNCHED_KEY, NFUDataSerializers.STRING.get(), NFFTamedMobAIState.WAIT.getId().toString());
+			this.createSynchedGetter(ATTACK_TARGET_SYNCHED_KEY, NFUDataSerializers.INT.get(), -1,
 					() -> Optional.ofNullable(this.getEntity().getTarget())
 							.flatMap(living -> Optional.of(living.getId())).orElse(-1));	// -1 means no target
 			
