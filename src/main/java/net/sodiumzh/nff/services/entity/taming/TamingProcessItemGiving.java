@@ -3,7 +3,14 @@ package net.sodiumzh.nff.services.entity.taming;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.phys.EntityHitResult;
+import net.minecraft.world.phys.HitResult;
+import net.minecraftforge.event.entity.player.PlayerInteractEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
+import net.sodiumzh.nff.services.NFFServices;
 import net.sodiumzh.nfu.util.NFUEntityStatics;
+import net.sodiumzh.nfu.util.NFULevelStatics;
 import org.jetbrains.annotations.ApiStatus;
 
 import javax.annotation.Nullable;
@@ -71,5 +78,24 @@ public abstract class TamingProcessItemGiving extends NFFTamingProcess
 	 * Not executed when the condition is satisfied after giving. Handle this case in finalActions().
 	 */
 	public void afterItemGiven(Player player, Mob mob, ItemStack item) {}
-	
+
+	@Mod.EventBusSubscriber(modid = NFFServices.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
+	public static class EventListeners {
+
+		@SubscribeEvent
+		public static void onUseItem(PlayerInteractEvent.RightClickItem event) {
+			if (event.getItemStack().isEmpty()) return;
+			HitResult mouseFocus = NFULevelStatics.getMouseFocus(event.getEntity());
+			if (mouseFocus.getType() == HitResult.Type.ENTITY
+				&& mouseFocus instanceof EntityHitResult ehr
+				&& ehr.getEntity() instanceof Mob mob)
+			{
+				boolean isItemGiveableMob = NFFTamableComponent.getOptional(mob).map(NFFTamableComponent::getTamingProcess)
+					.filter(tp -> tp instanceof TamingProcessItemGiving)
+					.isPresent();
+				if (isItemGiveableMob)
+					event.setCanceled(true);
+			}
+		}
+	}
 }
