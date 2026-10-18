@@ -41,8 +41,22 @@ public class NFFMobRespawnInfo extends MobRespawnInfo {
         });
     }
 
+    @Override
+    protected void afterSave(Mob fromMob, CompoundTag original) {
+        super.afterSave(fromMob, original);
+        this.ownerUUID = INFFTamed.get(fromMob).map(t -> t.getDataAccessor().getOwnerUUID()).orElse(null);
+    }
+
     public Optional<UUID> getOwnerUUID() {
-        return Optional.ofNullable(this.ownerUUID);
+        if (this.ownerUUID != null) return Optional.of(this.ownerUUID);
+        else return tryReadOwnerUUIDFromNBT(this.info);
+    }
+
+    private Optional<UUID> tryReadOwnerUUIDFromNBT(CompoundTag nbt) {
+        CompoundTag data = nbt.getCompound("ForgeCaps").getCompound("nfulib:entity_component_manager")
+            .getCompound("/nff/tamed/syncher").getCompound("data");
+        if (data.hasUUID("ownerUUID")) return Optional.of(data.getUUID("ownerUUID"));
+        else return Optional.empty();
     }
 
 }
