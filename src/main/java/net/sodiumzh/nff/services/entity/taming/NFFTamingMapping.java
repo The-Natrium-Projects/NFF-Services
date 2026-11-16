@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
  */
 public class NFFTamingMapping {
 
-	
+
 	private static final ITable2D<EntityType<?>, EntityType<?>, Supplier<NFFTamingProcess>> TABLE = new Table2D<>();
 
 	/* Register */
@@ -76,10 +76,6 @@ public class NFFTamingMapping {
 	public static NFFTamingProcess getProcess(EntityType<?> fromType) {
 		EntityType<? extends Mob> after = getConvertTo(fromType);
 		if (after == null) return null;
-		Tuple2<Supplier<NFFTamingProcess>, NFFTamingProcess> value = TABLE.get(fromType, after).orElse(null);
-		if (value == null) return null;
-		if (value.getB() == null)
-			TABLE.put(fromType, after, value.getA());
 		return TABLE.get(fromType, after).map(Supplier::get).orElse(null);
 	}
 
