@@ -23,11 +23,12 @@ import java.util.stream.Collectors;
  */
 public class NFFTamingMapping {
 
-	private static final ITable2D<EntityType<?>, EntityType<?>, Tuple2<Supplier<NFFTamingProcess>, NFFTamingProcess>> TABLE = new Table2D<>();
+	
+	private static final ITable2D<EntityType<?>, EntityType<?>, Supplier<NFFTamingProcess>> TABLE = new Table2D<>();
 
 	/* Register */
 	
-	public static void register(@Nonnull ResourceLocation from, @Nonnull ResourceLocation convertTo, @Nonnull Supplier<NFFTamingProcess> process, boolean override)
+	public static void register(@Nonnull ResourceLocation from, @Nonnull ResourceLocation convertTo, @Nonnull Supplier<NFFTamingProcess> processAccessor, boolean override)
 	{
 		if (!ForgeRegistries.ENTITY_TYPES.containsKey(from))
 			throw new MissingRegistryEntryException("NFFTamingMapping registering illegal key " + from);
@@ -42,7 +43,7 @@ public class NFFTamingMapping {
 				return;
 			}
 		}
-		TABLE.put(fromType, toType, new Tuple2<>(process, null));
+		TABLE.put(fromType, toType, processAccessor);
 	}
 	
 	public static void register(@Nonnull ResourceLocation fromType, @Nonnull ResourceLocation convertToType, @Nonnull Supplier<NFFTamingProcess> process)
@@ -78,8 +79,8 @@ public class NFFTamingMapping {
 		Tuple2<Supplier<NFFTamingProcess>, NFFTamingProcess> value = TABLE.get(fromType, after).orElse(null);
 		if (value == null) return null;
 		if (value.getB() == null)
-			TABLE.put(fromType, after, new Tuple2<>(value.getA(), value.getA().get()));
-		return TABLE.get(fromType, after).map(Tuple2::getB).orElse(null);
+			TABLE.put(fromType, after, value.getA());
+		return TABLE.get(fromType, after).map(Supplier::get).orElse(null);
 	}
 
 	/**
@@ -139,4 +140,8 @@ public class NFFTamingMapping {
 			.map(et -> (EntityType<? extends Mob>)et)
 			.collect(Collectors.toSet());
 	}
+
+
+
+
 }
